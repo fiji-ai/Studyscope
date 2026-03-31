@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #6366f1;
+  --color-brand-secondary: #a855f7;
+  --color-brand-accent: #f43f5e;
+  
+  --background-image-gradient-primary: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  --background-image-gradient-surface: linear-gradient(to bottom right, #ffffff, #f8fafc);
+  --background-image-gradient-vibrant: linear-gradient(135deg, #f43f5e 0%, #fb923c 100%);
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
+  }
+  
+  .vibrant-gradient {
+    background: var(--background-image-gradient-primary);
+  }
+  
+  .accent-gradient {
+    background: var(--background-image-gradient-vibrant);
+  }
+}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-brand-50: #f0f4ff;
+  --color-brand-100: #e1e9ff;
+  --color-brand-200: #c7d6ff;
+  --color-brand-300: #a1baff;
+  --color-brand-400: #7191ff;
+  --color-brand-500: #4a67ff;
+  --color-brand-600: #3344ff;
+  --color-brand-700: #2631eb;
+  --color-brand-800: #2329be;
+  --color-brand-900: #222997;
+  --color-brand-950: #151858;
+}
+
+@layer base {
+  body {
+    @apply font-sans text-gray-900 bg-gray-50 antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-xl;
+  }
+  
+  .glass-dark {
+    @apply bg-gray-900/70 backdrop-blur-md border border-gray-800/50 shadow-xl;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  }
+  
+  .btn-primary {
+    @apply px-6 py-3 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 transition-all active:scale-95 shadow-md hover:shadow-brand-200;
+  }
+}

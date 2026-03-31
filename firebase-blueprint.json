@@ -1,0 +1,136 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user profile in the StudyScope platform",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The user's unique identifier (Firebase Auth UID)"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address"
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's display name"
+        },
+        "country": {
+          "type": "string",
+          "description": "The user's country"
+        },
+        "board": {
+          "type": "string",
+          "description": "The user's education board"
+        },
+        "grade": {
+          "type": "string",
+          "description": "The user's grade or class level"
+        },
+        "academicYear": {
+          "type": "string",
+          "description": "The user's academic year"
+        },
+        "isPremium": {
+          "type": "boolean",
+          "description": "Whether the user has premium access"
+        },
+        "isOnboarded": {
+          "type": "boolean",
+          "description": "Whether the user has completed onboarding"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["student", "owner"],
+          "description": "The user's role in the platform"
+        }
+      },
+      "required": ["id", "email", "name", "isPremium", "isOnboarded", "role"]
+    },
+    "QuizResult": {
+      "title": "QuizResult",
+      "description": "A result from a completed quiz",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who took the quiz"
+        },
+        "subject": {
+          "type": "string",
+          "description": "The subject of the quiz"
+        },
+        "grade": {
+          "type": "string",
+          "description": "The grade level of the quiz"
+        },
+        "score": {
+          "type": "number",
+          "description": "The number of correct answers"
+        },
+        "totalQuestions": {
+          "type": "number",
+          "description": "The total number of questions in the quiz"
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time the quiz was completed"
+        }
+      },
+      "required": ["userId", "subject", "grade", "score", "totalQuestions", "date"]
+    },
+    "PracticeTestResult": {
+      "title": "PracticeTestResult",
+      "description": "A result from a completed practice test",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who took the test"
+        },
+        "topic": {
+          "type": "string",
+          "description": "The topic of the practice test"
+        },
+        "score": {
+          "type": "number",
+          "description": "The number of correct answers"
+        },
+        "totalQuestions": {
+          "type": "number",
+          "description": "The total number of questions in the test"
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time the test was completed"
+        }
+      },
+      "required": ["userId", "topic", "score", "totalQuestions", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "Stores user profiles"
+    },
+    "/quizResults/{resultId}": {
+      "schema": {
+        "$ref": "#/entities/QuizResult"
+      },
+      "description": "Stores quiz results for users"
+    },
+    "/practiceTestResults/{resultId}": {
+      "schema": {
+        "$ref": "#/entities/PracticeTestResult"
+      },
+      "description": "Stores practice test results for users"
+    }
+  }
+}

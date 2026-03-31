@@ -1,0 +1,200 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - id: string (required) - The user's unique identifier
+    //   - email: string (required) - The user's email address
+    //   - name: string (required) - The user's display name
+    //   - country: string (optional) - The user's country
+    //   - board: string (optional) - The user's education board
+    //   - grade: string (optional) - The user's grade or class level
+    //   - academicYear: string (optional) - The user's academic year
+    //   - isPremium: boolean (required) - Whether the user has premium access
+    //   - isOnboarded: boolean (required) - Whether the user has completed onboarding
+    //   - role: string (required) - 'student' or 'owner'
+    //
+    // Collection: quizResults
+    // Document ID: {resultId}
+    // Fields:
+    //   - userId: string (required) - The ID of the user who took the quiz
+    //   - subject: string (required) - The subject of the quiz
+    //   - grade: string (required) - The grade level of the quiz
+    //   - score: number (required) - The number of correct answers
+    //   - totalQuestions: number (required) - The total number of questions in the quiz
+    //   - date: string (required) - The date and time the quiz was completed (ISO string)
+    //
+    // Collection: practiceTestResults
+    // Document ID: {resultId}
+    // Fields:
+    //   - userId: string (required) - The ID of the user who took the test
+    //   - topic: string (required) - The topic of the practice test
+    //   - score: number (required) - The number of correct answers
+    //   - totalQuestions: number (required) - The total number of questions in the test
+    //   - date: string (required) - The date and time the test was completed (ISO string)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner') ||
+        (request.auth.token.email == "riddhish257@gmail.com" && request.auth.token.email_verified == true)
+      );
+    }
+
+    function hasOnlyAllowedFields(allowedFields) {
+      return request.resource.data.keys().hasOnly(allowedFields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      let allowedFields = ['id', 'email', 'name', 'country', 'board', 'grade', 'academicYear', 'isPremium', 'isOnboarded', 'role'];
+      
+      let hasRequired = data.keys().hasAll(['id', 'email', 'name', 'isPremium', 'isOnboarded', 'role']);
+      let hasOnlyAllowed = data.keys().hasOnly(allowedFields);
+      
+      let validTypes = data.id is string && data.id.size() > 0 && data.id.size() < 128 &&
+                       isValidEmail(data.email) &&
+                       data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+                       data.isPremium is bool &&
+                       data.isOnboarded is bool &&
+                       (data.role == 'student' || data.role == 'owner');
+                       
+      let validOptionals = (!('country' in data) || (data.country is string && data.country.size() < 100)) &&
+                           (!('board' in data) || (data.board is string && data.board.size() < 100)) &&
+                           (!('grade' in data) || (data.grade is string && data.grade.size() < 100)) &&
+                           (!('academicYear' in data) || (data.academicYear is string && data.academicYear.size() < 100));
+
+      return hasRequired && hasOnlyAllowed && validTypes && validOptionals;
+    }
+
+    function isValidQuizResult(data) {
+      let allowedFields = ['userId', 'subject', 'grade', 'score', 'totalQuestions', 'date'];
+      
+      let hasRequired = data.keys().hasAll(allowedFields);
+      let hasOnlyAllowed = data.keys().hasOnly(allowedFields);
+      
+      let validTypes = data.userId is string && data.userId.size() > 0 && data.userId.size() < 128 &&
+                       data.subject is string && data.subject.size() > 0 && data.subject.size() < 100 &&
+                       data.grade is string && data.grade.size() > 0 && data.grade.size() < 100 &&
+                       data.score is number && data.score >= 0 &&
+                       data.totalQuestions is number && data.totalQuestions > 0 &&
+                       data.score <= data.totalQuestions &&
+                       isValidDateString(data.date);
+
+      return hasRequired && hasOnlyAllowed && validTypes;
+    }
+
+    function isValidPracticeTestResult(data) {
+      let allowedFields = ['userId', 'topic', 'score', 'totalQuestions', 'date'];
+      
+      let hasRequired = data.keys().hasAll(allowedFields);
+      let hasOnlyAllowed = data.keys().hasOnly(allowedFields);
+      
+      let validTypes = data.userId is string && data.userId.size() > 0 && data.userId.size() < 128 &&
+                       data.topic is string && data.topic.size() > 0 && data.topic.size() < 100 &&
+                       data.score is number && data.score >= 0 &&
+                       data.totalQuestions is number && data.totalQuestions > 0 &&
+                       data.score <= data.totalQuestions &&
+                       isValidDateString(data.date);
+
+      return hasRequired && hasOnlyAllowed && validTypes;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      // Users can read their own profile, admins can read all
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Users can create their own profile. 
+      // They cannot assign themselves the 'owner' role unless they are the bootstrapped admin.
+      allow create: if isOwner(userId) && 
+                       isValidUser(request.resource.data) && 
+                       request.resource.data.id == userId &&
+                       ((request.resource.data.role == 'student' && request.resource.data.isPremium == false) || isAdmin());
+                       
+      // Users can update their own profile.
+      // They cannot change their role unless they are an admin.
+      // Admins can update any user's profile.
+      allow update: if (isOwner(userId) && 
+                       isValidUser(request.resource.data) && 
+                       request.resource.data.id == resource.data.id &&
+                       request.resource.data.role == resource.data.role) ||
+                       (isAdmin() && 
+                       isValidUser(request.resource.data) && 
+                       request.resource.data.id == resource.data.id);
+                       
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    match /quizResults/{resultId} {
+      // Users can read their own quiz results, admins can read all
+      allow read: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+      
+      // Users can create their own quiz results
+      allow create: if isAuthenticated() && 
+                       isValidQuizResult(request.resource.data) && 
+                       request.resource.data.userId == request.auth.uid;
+                       
+      // Quiz results should generally not be updated, but if they are, only by the owner
+      allow update: if isAuthenticated() && 
+                       resource.data.userId == request.auth.uid &&
+                       isValidQuizResult(request.resource.data) &&
+                       request.resource.data.userId == resource.data.userId;
+                       
+      allow delete: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+    }
+
+    match /practiceTestResults/{resultId} {
+      // Users can read their own practice test results, admins can read all
+      allow read: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+      
+      // Users can create their own practice test results
+      allow create: if isAuthenticated() && 
+                       isValidPracticeTestResult(request.resource.data) && 
+                       request.resource.data.userId == request.auth.uid;
+                       
+      // Practice test results should generally not be updated, but if they are, only by the owner
+      allow update: if isAuthenticated() && 
+                       resource.data.userId == request.auth.uid &&
+                       isValidPracticeTestResult(request.resource.data) &&
+                       request.resource.data.userId == resource.data.userId;
+                       
+      allow delete: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+    }
+  }
+}
